@@ -245,21 +245,48 @@
           </section>
         {:else}
           <section class="job-grid">
-            {#each data.openJobs as job}
-              <article class="job-card">
-                <div class="job-top"><span class="status open">OPEN</span><span>{job.employmentType}</span></div>
-                <h2>{job.title}</h2>
-                <p>{job.department} · {job.location}</p>
-                <div class="job-description">{job.description}</div>
-                <small>Published {formatDate(job.createdAt)}</small>
-                {#if isHr}
-                  <button class="button quiet full" type="button" onclick={() => (active = 'pipeline')}>Open pipeline <Icon name="arrow" size={13} /></button>
-                {:else}
-                  <button class="button primary full" type="button" onclick={() => (selectedJob = job)}>View position <Icon name="arrow" size={13} /></button>
-                {/if}
-              </article>
-            {/each}
-          </section>
+  {#each data.openJobs as job}
+    <article class="job-card">
+      <div class="job-top">
+        <span class="status open">OPEN</span>
+        <span>{job.employmentType}</span>
+      </div>
+
+      <h2>{job.title}</h2>
+
+      <p>{job.department} · {job.location}</p>
+
+      <p class="job-summary">
+        {job.description.length > 150
+          ? `${job.description.slice(0, 150)}…`
+          : job.description}
+      </p>
+
+      <small>Published {formatDate(job.createdAt)}</small>
+
+      {#if isHr}
+        <button
+          class="button quiet full"
+          type="button"
+          onclick={() => (active = 'pipeline')}
+        >
+          Open pipeline
+          <Icon name="arrow" size={13} />
+        </button>
+      {:else}
+        <button
+          class="button primary full"
+          type="button"
+          onclick={() => (selectedJob = job)}
+        >
+          View job
+          <Icon name="arrow" size={13} />
+        </button>
+      {/if}
+    </article>
+  {/each}
+</section>
+
         {/if}
 
         {#if isHr}
@@ -377,19 +404,94 @@
   </main>
 </div>
 
-{#if selectedJob}
+{#if selectedJob && !isHr}
   <div class="modal-backdrop" role="presentation">
-    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="job-modal-title">
-      <button class="modal-close" type="button" aria-label="Close" onclick={closeModals}>×</button>
+    <section
+      class="modal job-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="job-modal-title"
+    >
+      <button
+        class="modal-close"
+        type="button"
+        aria-label="Close"
+        onclick={closeModals}
+      >
+        ×
+      </button>
+
       <span class="eyebrow green">OPEN POSITION</span>
-      <h2 id="job-modal-title">{selectedJob.title}</h2>
-      <p class="modal-meta">{selectedJob.department} · {selectedJob.location} · {selectedJob.employmentType}</p>
-      <p class="job-description">{selectedJob.description}</p>
-      <form method="POST" action="?/apply" use:enhance>
-        <input type="hidden" name="jobId" value={selectedJob.id} />
-        <label for="cover-letter">Cover letter</label>
-        <textarea id="cover-letter" name="coverLetter" maxlength="10000" placeholder="Tell Origins why this role is a good fit for you."></textarea>
-        <button class="button primary full" type="submit">Submit application</button>
+
+      <h2 id="job-modal-title">
+        {selectedJob.title}
+      </h2>
+
+      <p class="modal-meta">
+        {selectedJob.department}
+        ·
+        {selectedJob.location}
+        ·
+        {selectedJob.employmentType}
+      </p>
+
+      <div class="job-modal-description">
+        <span class="eyebrow">JOB DESCRIPTION</span>
+
+        <div class="description-scroll">
+          {selectedJob.description}
+        </div>
+      </div>
+
+      <form
+        method="POST"
+        action="?/apply"
+        enctype="multipart/form-data"
+        use:enhance
+      >
+        <input
+          type="hidden"
+          name="jobId"
+          value={selectedJob.id}
+        />
+
+        <div class="apply-section">
+          <span class="eyebrow">APPLY FOR THIS POSITION</span>
+
+          <label for="cv-upload">
+            CV / Resume
+          </label>
+
+          <input
+            id="cv-upload"
+            name="resume"
+            type="file"
+            accept=".pdf,.doc,.docx"
+            required
+          />
+
+          <small class="upload-help">
+            PDF, DOC or DOCX. Maximum file size: 10 MB.
+          </small>
+
+          <label for="cover-letter">
+            Cover letter
+          </label>
+
+          <textarea
+            id="cover-letter"
+            name="coverLetter"
+            maxlength="10000"
+            placeholder="Tell Origins why this role is a good fit for you."
+          ></textarea>
+
+          <button
+            class="button primary full"
+            type="submit"
+          >
+            Submit application
+          </button>
+        </div>
       </form>
     </section>
   </div>
@@ -397,6 +499,7 @@
 
 {#if selectedApplication}
   <div class="modal-backdrop" role="presentation">
+    <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
     <section class="modal" role="dialog" aria-modal="true" aria-labelledby="application-modal-title">
       <button class="modal-close" type="button" aria-label="Close" onclick={closeModals}>×</button>
       <span class="eyebrow green">APPLICATION</span>

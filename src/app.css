@@ -453,3 +453,327 @@ body::after {
   min-height: 110px;
   resize: vertical;
 }
+
+/* ==========================================================================
+   Origins Talent — Premium Motion + Cool Light Theme
+   Final visual layer: preserves data/auth behavior while standardising motion.
+   ========================================================================== */
+
+:root {
+  color-scheme: dark;
+  --ease-out: cubic-bezier(.22, 1, .36, 1);
+  --ease-spring: cubic-bezier(.16, 1, .3, 1);
+  --motion-fast: 160ms;
+  --motion-base: 240ms;
+  --motion-slow: 420ms;
+
+  --bg: #07110d;
+  --surface: #0b1914;
+  --surface2: #0f2119;
+  --surface3: #143024;
+  --text: #f4f8f6;
+  --muted: #9aaca4;
+  --dim: #687a72;
+  --border: rgba(255,255,255,.085);
+  --accent: #28df91;
+  --accent-deep: #0fae68;
+  --green-wash: rgba(40,223,145,.075);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f5f7f6;
+  --surface: #ffffff;
+  --surface2: #f0f4f2;
+  --surface3: #e7eeea;
+  --text: #17221d;
+  --muted: #65736c;
+  --dim: #89958f;
+  --border: rgba(23,34,29,.095);
+  --accent: #087a50;
+  --accent-deep: #05623f;
+  --green-wash: rgba(8,122,80,.065);
+}
+
+html {
+  background: var(--bg);
+  scroll-behavior: smooth;
+}
+
+body {
+  background:
+    radial-gradient(ellipse 70% 45% at 82% -8%, var(--green-wash), transparent 70%),
+    radial-gradient(ellipse 55% 40% at -10% 35%, rgba(8,122,80,.035), transparent 72%),
+    var(--bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  transition: background-color var(--motion-slow) var(--ease-out), color var(--motion-slow) var(--ease-out);
+}
+
+button, a, input, textarea, select {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button, .button, .top-icon, .filter, .more, .card-link,
+.sidebar nav button, .modal-close, .calendar-head button {
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    background-color var(--motion-base) var(--ease-out),
+    border-color var(--motion-base) var(--ease-out),
+    color var(--motion-base) var(--ease-out),
+    box-shadow var(--motion-base) var(--ease-out),
+    opacity var(--motion-base) var(--ease-out);
+}
+
+.app {
+  isolation: isolate;
+}
+
+.sidebar {
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter: blur(28px) saturate(125%);
+  -webkit-backdrop-filter: blur(28px) saturate(125%);
+}
+
+.topbar {
+  background: color-mix(in srgb, var(--bg) 76%, transparent);
+  backdrop-filter: blur(28px) saturate(130%);
+  -webkit-backdrop-filter: blur(28px) saturate(130%);
+  box-shadow: 0 1px 0 var(--border);
+}
+
+.content {
+  animation: origins-page-in 520ms var(--ease-out) both;
+}
+
+@keyframes origins-page-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes origins-modal-in {
+  from { opacity: 0; transform: translateY(10px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes origins-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.panel,
+.job-card,
+.calendar,
+.messages,
+.settings .panel,
+.preflight-card,
+.metrics article,
+.application-card,
+.message-card,
+.interview-row {
+  transition:
+    transform var(--motion-base) var(--ease-spring),
+    border-color var(--motion-base) var(--ease-out),
+    box-shadow var(--motion-base) var(--ease-out),
+    background-color var(--motion-slow) var(--ease-out);
+}
+
+.panel:hover,
+.job-card:hover,
+.application-card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--accent) 18%, var(--border));
+  box-shadow: 0 22px 60px rgba(0,0,0,.08);
+}
+
+:root[data-theme="light"] .panel,
+:root[data-theme="light"] .job-card,
+:root[data-theme="light"] .calendar,
+:root[data-theme="light"] .messages,
+:root[data-theme="light"] .settings .panel,
+:root[data-theme="light"] .preflight-card,
+:root[data-theme="light"] .metrics article {
+  background: color-mix(in srgb, #fff 94%, var(--accent) 6%);
+  box-shadow: 0 18px 55px rgba(28,55,44,.055);
+}
+
+:root[data-theme="light"] .sidebar {
+  background: rgba(248,250,249,.78);
+}
+
+:root[data-theme="light"] .topbar {
+  background: rgba(248,250,249,.74);
+}
+
+.button {
+  min-height: 38px;
+  position: relative;
+  overflow: hidden;
+  transform: translateZ(0);
+}
+
+.button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,.16) 50%, transparent 70%);
+  transform: translateX(-130%);
+  transition: transform 700ms var(--ease-out);
+  pointer-events: none;
+}
+
+.button:hover::after {
+  transform: translateX(130%);
+}
+
+.button:active {
+  transform: scale(.975);
+}
+
+.button.primary {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-deep) 100%);
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.button.primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 15px 38px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.button.quiet:hover,
+.top-icon:hover,
+.filter:hover {
+  background: var(--green-wash);
+  border-color: color-mix(in srgb, var(--accent) 25%, var(--border));
+  color: var(--accent);
+}
+
+.sidebar nav button {
+  will-change: transform;
+}
+
+.sidebar nav button:hover {
+  transform: translateX(3px);
+}
+
+.sidebar nav button.active {
+  background:
+    linear-gradient(90deg, var(--green-wash), transparent 85%),
+    color-mix(in srgb, var(--surface) 92%, var(--accent) 8%);
+}
+
+.sidebar nav button.active::before {
+  transition: transform var(--motion-base) var(--ease-spring);
+  transform-origin: center;
+}
+
+.sidebar nav button:active {
+  transform: translateX(1px) scale(.99);
+}
+
+.metrics article:hover {
+  transform: translateY(-3px);
+}
+
+.live-state,
+.mode-switch,
+.date-box {
+  background: color-mix(in srgb, var(--surface) 94%, var(--accent) 6%);
+}
+
+.application-hero {
+  background:
+    radial-gradient(circle at 86% 50%, var(--green-wash), transparent 34%),
+    linear-gradient(110deg, color-mix(in srgb, var(--accent) 7%, var(--surface)), var(--surface));
+}
+
+.status,
+.stage,
+.tag,
+.live-pill,
+.secure-badge {
+  transition: transform var(--motion-fast) var(--ease-spring), background-color var(--motion-base) var(--ease-out);
+}
+
+.status:hover,
+.stage:hover,
+.tag:hover {
+  transform: translateY(-1px);
+}
+
+.modal-backdrop {
+  animation: origins-overlay-in 260ms var(--ease-out) both;
+}
+
+.modal {
+  animation: origins-modal-in 430ms var(--ease-spring) both;
+  background:
+    radial-gradient(circle at 90% 0%, var(--green-wash), transparent 35%),
+    var(--surface);
+  border-color: color-mix(in srgb, var(--accent) 14%, var(--border));
+}
+
+.modal-close:hover {
+  transform: rotate(90deg);
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 25%, var(--border));
+}
+
+.modal input,
+.modal textarea,
+.modal select,
+.create-job input,
+.create-job textarea,
+.compose-panel textarea {
+  transition:
+    border-color var(--motion-base) var(--ease-out),
+    box-shadow var(--motion-base) var(--ease-out),
+    background-color var(--motion-base) var(--ease-out);
+}
+
+.modal input:focus,
+.modal textarea:focus,
+.modal select:focus,
+.create-job input:focus,
+.create-job textarea:focus,
+.compose-panel textarea:focus {
+  border-color: color-mix(in srgb, var(--accent) 48%, var(--border));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 9%, transparent);
+}
+
+.toast {
+  animation: origins-toast-in 420ms var(--ease-spring) both;
+  background: color-mix(in srgb, var(--surface3) 92%, var(--accent) 8%);
+  backdrop-filter: blur(20px) saturate(130%);
+  -webkit-backdrop-filter: blur(20px) saturate(130%);
+}
+
+@keyframes origins-toast-in {
+  from { opacity: 0; transform: translate3d(0,-8px,0) scale(.98); }
+  to { opacity: 1; transform: translate3d(0,0,0) scale(1); }
+}
+
+.account > span,
+.avatar,
+.person i,
+.thread > i {
+  transition: transform var(--motion-base) var(--ease-spring), background-color var(--motion-base) var(--ease-out);
+}
+
+.account:hover > span,
+.thread:hover > i {
+  transform: scale(1.06);
+  background: var(--green-wash);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *,
+  *::before,
+  *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

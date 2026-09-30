@@ -1,5 +1,6 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
+  import { fade, fly } from 'svelte/transition';
   import type { ActionData, PageData } from './$types';
   import Icon from '$lib/Icon.svelte';
 
@@ -178,6 +179,8 @@
       </div>
     </header>
 
+    {#key active}
+    <div in:fade={{ duration: 220 }} out:fade={{ duration: 140 }}>
     {#if isHr && active === 'pipeline'}
       <div class="content">
         <div class="head">
@@ -401,12 +404,15 @@
         </section>
       </div>
     {/if}
+    </div>
+    {/key}
   </main>
 </div>
 
 {#if selectedJob && !isHr}
   <div class="modal-backdrop" role="presentation">
     <section
+      transition:fly={{ y: 10, duration: 360 }}
       class="modal job-modal"
       role="dialog"
       aria-modal="true"
@@ -500,7 +506,7 @@
 {#if selectedApplication}
   <div class="modal-backdrop" role="presentation">
     <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
-    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="application-modal-title">
+    <section transition:fly={{ y: 10, duration: 320 }} class="modal" role="dialog" aria-modal="true" aria-labelledby="application-modal-title">
       <button class="modal-close" type="button" aria-label="Close" onclick={closeModals}>×</button>
       <span class="eyebrow green">APPLICATION</span>
       <h2 id="application-modal-title">{selectedApplication.job?.title ?? 'Application'}</h2>

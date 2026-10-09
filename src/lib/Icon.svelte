@@ -1,3 +1,8 @@
+<!--
+   Disclaimer: Property of origins ltd. united kingdom.
+   privacy policy: https://www.origins-software.com/privacy
+   terms of service: https://www.origins-software.com/terms
+-->
 <script lang="ts">
   export let name:
     | 'grid'
@@ -16,7 +21,7 @@
     | 'mic'
     | 'phone'
     | 'more'
-    | 'menu' | 'file' | 'arrow' | 'logout' = 'grid';
+    | 'menu' | 'file' | 'arrow' | 'logout' | 'search' = 'grid';
   export let size = 15;
 </script>
 
@@ -73,5 +78,7 @@
     <path d="M5 12h13M13 6l6 6-6 6" />
   {:else if name === 'logout'}
     <path d="M10 5H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4" /><path d="M13 8l4 4-4 4M8 12h9" />
+  {:else if name === 'search'}
+    <circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4.5 4.5" />
   {/if}
 </svg>

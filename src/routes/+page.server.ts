@@ -1,3 +1,8 @@
+/*
+   Disclaimer: Property of origins ltd. united kingdom.
+   privacy policy: https://www.origins-software.com/privacy
+   terms of service: https://www.origins-software.com/terms
+*/
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { and, desc, eq, inArray } from 'drizzle-orm';
@@ -328,6 +333,65 @@ export const actions: Actions = {
     });
 
     return { success: true, message: 'Application updated.' };
+  },
+
+  scheduleInterview: async ({ request, locals }) => {
+    if (!locals.user) throw redirect(303, '/login');
+    const profile = await getProfile(locals.user.id);
+    if (!profile || !isHr(profile.role)) return fail(403, { error: 'HR access required.' });
+
+    const form = await request.formData();
+    const applicationId = String(form.get('applicationId') ?? '').trim();
+    const title = String(form.get('title') ?? '').trim();
+    const type = String(form.get('type') ?? 'video');
+    const meetingUrl = String(form.get('meetingUrl') ?? '').trim();
+    const startsAt = new Date(String(form.get('startsAt') ?? ''));
+    const endsAt = new Date(String(form.get('endsAt') ?? ''));
+    if (!applicationId || !title) return fail(400, { error: 'Choose an application and enter an interview title.' });
+    if (title.length > 160) return fail(400, { error: 'Interview title is too long.' });
+    if (!['video', 'phone', 'onsite'].includes(type)) return fail(400, { error: 'Choose a valid interview format.' });
+    if (type === 'video' && !meetingUrl) return fail(400, { error: 'Add the Google Meet link provided by HR.' });
+    if (meetingUrl) {
+      try {
+        const parsedUrl = new URL(meetingUrl);
+        if (parsedUrl.protocol !== 'https:' || parsedUrl.hostname !== 'meet.google.com') throw new Error('invalid meeting URL');
+      } catch {
+        return fail(400, { error: 'Enter a valid Google Meet link beginning with https://meet.google.com/.' });
+      }
+    }
+    if (Number.isNaN(startsAt.getTime()) || Number.isNaN(endsAt.getTime()) || endsAt <= startsAt) {
+      return fail(400, { error: 'Enter a valid start and end time. The end must be after the start.' });
+    }
+    if (endsAt.getTime() - startsAt.getTime() > 8 * 60 * 60 * 1000) return fail(400, { error: 'An interview cannot be longer than eight hours.' });
+
+    const [application] = await db.select().from(applications).where(eq(applications.id, applicationId)).limit(1);
+    if (!application) return fail(404, { error: 'Application not found.' });
+
+    const roomCode = crypto.randomUUID().replace(/-/g, '').slice(0, 18);
+    await db.transaction(async (tx) => {
+      await tx.insert(interviews).values({
+        applicationId,
+        interviewerId: profile.id,
+        title,
+        type: type as 'video' | 'phone' | 'onsite',
+        status: 'scheduled',
+        startsAt,
+        endsAt,
+        roomCode,
+        meetingUrl: meetingUrl || null
+      });
+      if (application.status !== 'interview') {
+        await tx.update(applications).set({ status: 'interview', updatedAt: new Date() }).where(eq(applications.id, applicationId));
+        await tx.insert(applicationEvents).values({ applicationId, actorId: profile.id, fromStatus: application.status, toStatus: 'interview', note: `Interview scheduled: ${title}` });
+      }
+      await tx.insert(notifications).values({
+        profileId: application.applicantId,
+        title: 'Interview scheduled',
+        body: `${title} has been scheduled for ${startsAt.toLocaleString('en-GB')}.${meetingUrl ? ` Join using Google Meet: ${meetingUrl}` : ''}`,
+        data: { applicationId, roomCode, meetingUrl: meetingUrl || null, startsAt: startsAt.toISOString() }
+      });
+    });
+    return { success: true, message: 'Interview scheduled and linked to the application.' };
   },
 
   createJob: async ({ request, locals }) => {

@@ -1,3 +1,8 @@
+<!--
+   Disclaimer: Property of origins ltd. united kingdom.
+   privacy policy: https://www.origins-software.com/privacy
+   terms of service: https://www.origins-software.com/terms
+-->
 <script lang="ts">
   import { enhance } from '$app/forms';
   import type { ActionData, PageData } from './$types';
@@ -16,7 +21,53 @@
   let selectedJob: Job | null = null;
   let selectedApplication: Application | null = null;
   let toast = '';
-  let dark = true;
+  let applicationSearch = '';
+  let statusFilter = 'all';
+  let busyAction = false;
+  const statusStages = ['applied', 'screening', 'interview', 'assessment', 'offer', 'hired', 'rejected', 'withdrawn'];
+  $: filteredApplications = data.applications.filter((application) => {
+    const haystack = `${application.applicant?.fullName ?? ''} ${application.applicant?.email ?? ''} ${application.job?.title ?? ''}`.toLowerCase();
+    return haystack.includes(applicationSearch.toLowerCase()) && (statusFilter === 'all' || application.status === statusFilter);
+  });
+  $: stageCounts = statusStages.map((status) => ({ status, count: data.applications.filter((application) => application.status === status).length }));
+  $: maxStageCount = Math.max(1, ...stageCounts.map((stage) => stage.count));
+  $: upcomingInterviews = (data.interviews ?? []).filter((item) => new Date(item.startsAt).getTime() >= Date.now() && item.status !== 'cancelled').slice(0, 5);
+  $: selectedApplicationInterviews = selectedApplication ? data.interviews.filter((item) => item.applicationId === selectedApplication?.id) : [];
+
+  function enhanceWithLoading() {
+    busyAction = true;
+    return async ({ update }: { update: () => Promise<void> }) => {
+      try { await update(); } finally { busyAction = false; }
+    };
+  }
+  let calendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+
+  $: calendarTitle = calendarMonth.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+  $: calendarCells = buildCalendar(calendarMonth, data.interviews ?? []);
+
+  function buildCalendar(month: Date, interviews: PageData['interviews']) {
+    const year = month.getFullYear();
+    const monthIndex = month.getMonth();
+    const firstWeekday = new Date(year, monthIndex, 1).getDay();
+    const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+    const previousMonthDays = new Date(year, monthIndex, 0).getDate();
+    const today = new Date();
+    return Array.from({ length: 42 }, (_, index) => {
+      const dayNumber = index - firstWeekday + 1;
+      const date = new Date(year, monthIndex, dayNumber);
+      const inMonth = dayNumber > 0 && dayNumber <= daysInMonth;
+      const day = inMonth ? dayNumber : dayNumber <= 0 ? previousMonthDays + dayNumber : dayNumber - daysInMonth;
+      const events = interviews.filter((item) => {
+        const startsAt = new Date(item.startsAt);
+        return !Number.isNaN(startsAt.getTime()) && startsAt.getFullYear() === date.getFullYear() && startsAt.getMonth() === date.getMonth() && startsAt.getDate() === date.getDate() && item.status !== 'cancelled';
+      });
+      return { key: `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`, day, inMonth, today: date.toDateString() === today.toDateString(), events };
+    });
+  }
+
+  function shiftCalendar(offset: number) {
+    calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + offset, 1);
+  }
 
   $: if (form?.success || form?.message) {
     toast = form.message ?? 'Saved.';
@@ -78,16 +129,9 @@
     selectedApplication = null;
   }
 
-  function toggleTheme() {
-    dark = !dark;
-    document.documentElement.dataset.theme = dark ? 'dark' : 'light';
-    localStorage.setItem('origins-talent-theme', dark ? 'dark' : 'light');
-  }
-
   if (typeof document !== 'undefined') {
-    const savedTheme = localStorage.getItem('origins-talent-theme');
-    if (savedTheme === 'light' || savedTheme === 'dark') dark = savedTheme === 'dark';
-    document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+    document.documentElement.dataset.theme = 'dark';
+    localStorage.removeItem('origins-talent-theme');
   }
 </script>
 
@@ -147,11 +191,6 @@
     </nav>
 
     <div class="side-bottom">
-      <div class="live-state">
-        <i></i>
-        <div><b>SUPABASE CONNECTED</b><small>Authenticated production data</small></div>
-      </div>
-
       <div class="account">
         <span>{initials(data.profile.fullName)}</span>
         <div><b>{data.profile.fullName}</b><small>{data.profile.email}</small></div>
@@ -170,9 +209,6 @@
         <span>ORIGINS</span><strong>·</strong><strong>{isHr ? 'Talent workspace' : 'Applicant workspace'}</strong>
       </div>
       <div class="top-actions">
-        <button class="top-icon" type="button" aria-label="Toggle theme" onclick={toggleTheme}>
-          <Icon name={dark ? 'sun' : 'moon'} size={15} />
-        </button>
         <span class="role-pill">{data.profile.role.replace('_', ' ')}</span>
         <span class="avatar">{initials(data.profile.fullName)}</span>
       </div>
@@ -189,43 +225,46 @@
           <button class="button primary" type="button" onclick={() => (active = 'jobs')}>Manage jobs <Icon name="arrow" size={13} /></button>
         </div>
 
-        <section class="metrics">
-          <article><span>APPLICATIONS</span><strong>{data.stats.applications}</strong><small>Real application records</small></article>
-          <article><span>APPLICANTS</span><strong>{data.stats.applicants}</strong><small>Unique applicant profiles</small></article>
-          <article><span>INTERVIEWS</span><strong>{data.stats.interviews}</strong><small>Not cancelled</small></article>
-          <article><span>OPEN JOBS</span><strong>{data.stats.openJobs}</strong><small>Currently published</small></article>
+        <section class="metrics hr-metrics">
+          <article><span>TOTAL APPLICATIONS</span><strong>{data.stats.applications}</strong><small>Across all published positions</small></article>
+          <article><span>ACTIVE CANDIDATES</span><strong>{data.stats.active}</strong><small>In review or progressing</small></article>
+          <article><span>UPCOMING INTERVIEWS</span><strong>{upcomingInterviews.length}</strong><small>Scheduled from saved records</small></article>
+          <article><span>OPEN POSITIONS</span><strong>{data.stats.openJobs}</strong><small>{data.stats.offers} offer-stage candidate(s)</small></article>
         </section>
 
-        {#if data.applications.length === 0}
-          <section class="empty panel">
-            <span class="eyebrow">PIPELINE EMPTY</span>
-            <h2>No applications yet.</h2>
-            <p>Applications submitted through the portal will appear here automatically.</p>
-            <button class="button primary" type="button" onclick={() => (active = 'jobs')}>View jobs</button>
-          </section>
-        {:else}
-          <section class="panel table-panel">
-            <div class="panel-head">
-              <div><span class="eyebrow">LIVE RECORDS</span><h2>Applications</h2></div>
-              <span class="count">{data.applications.length}</span>
-            </div>
-            <div class="table">
-              <div class="tr th"><span>Candidate</span><span>Position</span><span>Status</span><span>Updated</span><span></span></div>
-              {#each data.applications as application}
-                <div class="tr candidate">
-                  <span class="person">
-                    <i>{initials(application.applicant?.fullName)}</i>
-                    <b>{application.applicant?.fullName ?? 'Unknown applicant'}<small>{application.applicant?.email ?? '—'}</small></b>
-                  </span>
-                  <span>{application.job?.title ?? 'Position removed'}</span>
-                  <span><em class="status {application.status}">{application.status}</em></span>
-                  <span>{formatDate(application.updatedAt)}</span>
-                  <button class="more" type="button" aria-label="Open application" onclick={() => openApplication(application)}><Icon name="external" size={14} /></button>
-                </div>
+        <section class="hr-analytics">
+          <article class="panel analytics-panel">
+            <div class="panel-head"><div><span class="eyebrow">HIRING ANALYTICS</span><h2>Application stages</h2><p>Live distribution of your current application records.</p></div><span class="analytics-total">{data.stats.applications} total</span></div>
+            {#if data.applications.length === 0}<div class="chart-empty">Stage analytics will appear when candidates apply.</div>{:else}
+              <div class="stage-chart" role="img" aria-label="Application counts by hiring stage">
+                {#each stageCounts as stage}
+                  <div class="stage-bar-row"><span>{stage.status.replace('_', ' ')}</span><div class="stage-track"><i style={`width:${(stage.count / maxStageCount) * 100}%`}></i></div><b>{stage.count}</b></div>
+                {/each}
+              </div>
+            {/if}
+          </article>
+          <article class="panel upcoming-panel">
+            <div class="panel-head"><div><span class="eyebrow">NEXT UP</span><h2>Interview schedule</h2><p>Upcoming booked interviews.</p></div><button class="text-btn" type="button" onclick={() => (active = 'interviews')}>View calendar →</button></div>
+            {#if upcomingInterviews.length === 0}<div class="chart-empty">No upcoming interviews scheduled.</div>{:else}
+              {#each upcomingInterviews as interview}
+                {@const related = data.applications.find((item) => item.id === interview.applicationId)}
+                <div class="upcoming-item"><div class="upcoming-date"><b>{new Date(interview.startsAt).toLocaleDateString('en-GB',{day:'2-digit'})}</b><small>{new Date(interview.startsAt).toLocaleDateString('en-GB',{month:'short'})}</small></div><div class="upcoming-copy"><strong>{interview.title}</strong><small>{related?.applicant?.fullName ?? 'Candidate'} · {related?.job?.title ?? 'Position'}</small><small>{formatDateTime(interview.startsAt)}</small></div><a class="mini-link" href={interview.meetingUrl || `/interview/${interview.roomCode}`} target={interview.meetingUrl ? '_blank' : undefined} rel={interview.meetingUrl ? 'noopener noreferrer' : undefined} aria-label="Open Google Meet interview">↗</a></div>
+              {/each}
+            {/if}
+          </article>
+        </section>
+
+        <section class="panel table-panel hr-applications-panel">
+          <div class="panel-head"><div><span class="eyebrow">CANDIDATE TRACKING</span><h2>Applications</h2><p>Search candidates, track each position, and open a full application record.</p></div><span class="count">{filteredApplications.length} / {data.applications.length}</span></div>
+          <div class="application-filters"><label class="search-field"><Icon name="search" size={15}/><input bind:value={applicationSearch} placeholder="Search candidate, email or position" aria-label="Search applications" /></label><select bind:value={statusFilter} aria-label="Filter by application status"><option value="all">All stages</option>{#each statusStages as status}<option value={status}>{status.charAt(0).toUpperCase()+status.slice(1)}</option>{/each}</select></div>
+          {#if filteredApplications.length === 0}<div class="chart-empty">{data.applications.length ? 'No applications match your search and filters.' : 'Applications submitted through the portal will appear here automatically.'}</div>{:else}
+            <div class="table hr-table"><div class="tr th"><span>Candidate</span><span>Position</span><span>Stage</span><span>Last updated</span><span>Details</span></div>
+              {#each filteredApplications as application}
+                <div class="tr candidate hr-candidate-row"><span class="person"><i>{initials(application.applicant?.fullName)}</i><b>{application.applicant?.fullName ?? 'Unknown applicant'}<small>{application.applicant?.email ?? '—'}</small></b></span><span class="position-cell">{application.job?.title ?? 'Position removed'}<small>{application.job?.department ?? 'Department not set'}</small></span><span><em class="status {application.status}">{application.status}</em></span><span>{formatDate(application.updatedAt)}</span><button class="button quiet details-button" type="button" onclick={() => openApplication(application)}>Details <Icon name="external" size={13}/></button></div>
               {/each}
             </div>
-          </section>
-        {/if}
+          {/if}
+        </section>
       </div>
     {:else if active === 'jobs'}
       <div class="content">
@@ -332,11 +371,28 @@
       </div>
     {:else if active === 'interviews'}
       <div class="content">
-        <div class="head"><div><span class="eyebrow green">SCHEDULING</span><h1>Interviews.</h1><p>Access interview rooms attached to your authenticated application records.</p></div></div>
+        <div class="head"><div><span class="eyebrow green">SCHEDULING</span><h1>Interviews.</h1><p>Join scheduled interviews using the Google Meet link supplied by HR.</p></div></div>
+        {#if isHr}
+          <section class="panel schedule-panel"><div class="panel-head"><div><span class="eyebrow">BOOK AN INTERVIEW</span><h2>Schedule for an applicant</h2><p>Add the Google Meet URL created by HR and attach it to the applicant’s schedule.</p></div></div>
+            <form method="POST" action="?/scheduleInterview" use:enhance={enhanceWithLoading}>
+              <div class="schedule-grid"><label>Application<select name="applicationId" required><option value="">Choose candidate and position</option>{#each data.applications as application}<option value={application.id}>{application.applicant?.fullName ?? 'Candidate'} — {application.job?.title ?? 'Position'} ({application.status})</option>{/each}</select></label><label>Interview title<input name="title" placeholder="e.g. Technical interview" maxlength="160" required /></label><label>Format<select name="type"><option value="video">Google Meet</option><option value="phone">Phone</option><option value="onsite">On-site</option></select></label><label class="meeting-link-field">Google Meet link<input name="meetingUrl" type="url" placeholder="https://meet.google.com/abc-defg-hij" pattern="https://meet\.google\.com/.*" /><small>Paste the meeting URL created by HR. Required for Google Meet interviews.</small></label><label>Starts at<input name="startsAt" type="datetime-local" required /></label><label>Ends at<input name="endsAt" type="datetime-local" required /></label></div>
+              <button class="button primary" type="submit" disabled={busyAction}>{#if busyAction}<span class="loading-spinner" aria-hidden="true"></span> Scheduling…{:else}Schedule interview <Icon name="arrow" size={13}/>{/if}</button>
+            </form>
+          </section>
+        {/if}
+        <section class="interview-calendar panel">
+          <div class="calendar-toolbar">
+            <div><span class="eyebrow">SCHEDULE OVERVIEW</span><h2>{calendarTitle}</h2><p>Interview dates sync from your saved application records.</p></div>
+            <div class="calendar-controls"><button type="button" aria-label="Previous month" onclick={() => shiftCalendar(-1)}>‹</button><button type="button" class="today-button" onclick={() => (calendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1))}>Today</button><button type="button" aria-label="Next month" onclick={() => shiftCalendar(1)}>›</button></div>
+          </div>
+          <div class="calendar-grid calendar-weekdays">{#each ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'] as weekday}<div>{weekday}</div>{/each}</div>
+          <div class="calendar-grid calendar-days">{#each calendarCells as cell (cell.key)}<div class:outside={!cell.inMonth} class:today={cell.today} class="calendar-day"><span class="day-number">{cell.day}</span>{#each cell.events.slice(0, 2) as event}<a class="calendar-event" href={event.meetingUrl || `/interview/${event.roomCode}`} target={event.meetingUrl ? '_blank' : undefined} rel={event.meetingUrl ? 'noopener noreferrer' : undefined}>{event.title}</a>{/each}{#if cell.events.length > 2}<span class="more-events">+{cell.events.length - 2} more</span>{/if}</div>{/each}</div>
+          <div class="calendar-legend"><span><i></i> Scheduled interview</span><span>{data.interviews.filter((item) => item.status !== 'cancelled').length} active interviews</span></div>
+        </section>
         {#if data.interviews.length === 0}
-          <section class="empty panel"><span class="eyebrow">NO INTERVIEWS</span><h2>No interviews scheduled.</h2><p>When an interview is created for one of your applications, it will appear here.</p></section>
+          <section class="empty panel"><span class="eyebrow">NO INTERVIEWS</span><h2>No interviews scheduled.</h2><p>When an interview is created for one of your applications, it will appear here automatically.</p></section>
         {:else}
-          <section class="panel">
+          <section class="panel interview-list-panel">
             <div class="table">
               {#each data.interviews as interview}
                 <div class="interview-row">
@@ -345,23 +401,40 @@
                     <h3>{interview.title}</h3>
                     <small>{interview.type} · {formatDateTime(interview.startsAt)} — {formatDateTime(interview.endsAt)}</small>
                   </div>
-                  <a class="button quiet" href={`/interview/${interview.roomCode}`}>Open room</a>
+                  <a class="button quiet" href={interview.meetingUrl || `/interview/${interview.roomCode}`} target={interview.meetingUrl ? '_blank' : undefined} rel={interview.meetingUrl ? 'noopener noreferrer' : undefined}>{interview.meetingUrl ? 'Join Google Meet' : 'Meeting link missing'}</a>
                 </div>
               {/each}
             </div>
           </section>
         {/if}
       </div>
-    {:else if active === 'messages'}
+       {:else if active === 'messages'}
       <div class="content">
-        <div class="head"><div><span class="eyebrow green">MESSAGES</span><h1>Application conversations.</h1><p>Messages are stored against real application records.</p></div></div>
+        <div class="head">
+          <div>
+            <span class="eyebrow green">MESSAGES</span>
+            <h1>Application conversations.</h1>
+            <p>Messages are stored against real application records.</p>
+          </div>
+        </div>
+
         {#if data.messages.length === 0}
-          <section class="empty panel"><span class="eyebrow">NO MESSAGES</span><h2>No conversation yet.</h2><p>{isHr ? 'Messages will appear when you communicate with an applicant.' : 'A recruiter can message you once your application is being reviewed.'}</p></section>
+          <section class="empty panel">
+            <span class="eyebrow">NO MESSAGES</span>
+            <h2>No conversation yet.</h2>
+            <p>
+              {isHr
+                ? 'Messages will appear when you communicate with an applicant.'
+                : 'A recruiter can message you once your application is being reviewed.'}
+            </p>
+          </section>
         {:else}
           <section class="message-list">
             {#each data.messages as message}
               <article class="panel message-card">
-                <span class="eyebrow">{formatDateTime(message.createdAt)}</span>
+                <span class="eyebrow">
+                  {formatDateTime(message.createdAt)}
+                </span>
                 <p>{message.body}</p>
               </article>
             {/each}
@@ -372,15 +445,29 @@
           <section class="panel compose-panel">
             <span class="eyebrow">APPLICATION MESSAGE</span>
             <h2>{selectedApplication.job?.title ?? 'Application'}</h2>
+
             <form method="POST" action="?/sendMessage" use:enhance>
-              <input type="hidden" name="applicationId" value={selectedApplication.id} />
+              <input
+                type="hidden"
+                name="applicationId"
+                value={selectedApplication.id}
+              />
               <label for="message-body">Message</label>
-              <textarea id="message-body" name="body" placeholder="Write a message…" maxlength="10000" required></textarea>
-              <button class="button primary" type="submit">Send message</button>
+              <textarea
+                id="message-body"
+                name="body"
+                placeholder="Write a message…"
+                maxlength="10000"
+                required
+              ></textarea>
+              <button class="button primary" type="submit">
+                Send message
+              </button>
             </form>
           </section>
         {/if}
       </div>
+
     {:else if active === 'settings'}
       <div class="content">
         <div class="head"><div><span class="eyebrow green">ACCOUNT</span><h1>Settings.</h1><p>Your identity and access are controlled by your authenticated Supabase account.</p></div></div>
@@ -402,6 +489,7 @@
       </div>
     {/if}
   </main>
+  <div class="brand-watermark" aria-hidden="true">ORIGINS SOFTWARE · UNITED KINGDOM</div>
 </div>
 
 {#if selectedJob && !isHr}
@@ -505,9 +593,14 @@
       <span class="eyebrow green">APPLICATION</span>
       <h2 id="application-modal-title">{selectedApplication.job?.title ?? 'Application'}</h2>
       <p class="modal-meta">{selectedApplication.applicant?.fullName ?? data.profile.fullName} · {selectedApplication.status}</p>
+      {#if isHr}
+        <div class="candidate-detail-summary"><div><small>Candidate email</small><strong>{selectedApplication.applicant?.email ?? 'Not available'}</strong></div><div><small>Position</small><strong>{selectedApplication.job?.title ?? 'Position removed'}</strong></div><div><small>Department</small><strong>{selectedApplication.job?.department ?? '—'}</strong></div></div>
+        <div class="candidate-cover-letter"><span class="eyebrow">COVER LETTER</span><p>{selectedApplication.coverLetter || 'No cover letter was included with this application.'}</p></div>
+      {/if}
+      <div class="application-progress"><span class="eyebrow">APPLICATION PROGRESS</span><div class="progress-track"><i style={`width:${Math.max(8, (statusStages.indexOf(selectedApplication.status) + 1) / 6 * 100)}%`}></i></div><small>Applied {formatDate(selectedApplication.appliedAt)} · Last updated {formatDate(selectedApplication.updatedAt)}</small></div>
 
       {#if isHr}
-        <form method="POST" action="?/updateApplication" use:enhance>
+        <form method="POST" action="?/updateApplication" use:enhance={enhanceWithLoading}>
           <input type="hidden" name="applicationId" value={selectedApplication.id} />
           <label for="application-status">Status</label>
           <select id="application-status" name="status" value={selectedApplication.status}>
@@ -522,8 +615,13 @@
           </select>
           <label for="application-note">Internal note</label>
           <textarea id="application-note" name="note" maxlength="5000" placeholder="Optional internal note"></textarea>
-          <button class="button primary full" type="submit">Update application</button>
+          <button class="button primary full" type="submit" disabled={busyAction}>{#if busyAction}<span class="loading-spinner" aria-hidden="true"></span> Updating status…{:else}Update application status{/if}</button>
         </form>
+        <section class="application-detail-block"><span class="eyebrow">INTERVIEW HISTORY</span><h3>Interviews for this application</h3>
+          {#if selectedApplicationInterviews.length === 0}<p class="detail-muted">No interviews are linked to this application yet. Use Interviews → Schedule for an applicant to book one.</p>{:else}
+            {#each selectedApplicationInterviews as interview}<div class="detail-interview"><span class="status {interview.status}">{interview.status}</span><strong>{interview.title}</strong><small>{interview.type} · {formatDateTime(interview.startsAt)} — {formatDateTime(interview.endsAt)}</small><a href={interview.meetingUrl || `/interview/${interview.roomCode}`} target={interview.meetingUrl ? '_blank' : undefined} rel={interview.meetingUrl ? 'noopener noreferrer' : undefined}>{interview.meetingUrl ? 'Join Google Meet ↗' : 'Google Meet link not added yet'}</a></div>{/each}
+          {/if}
+        </section>
       {:else}
         <p>{selectedApplication.coverLetter || 'No cover letter was submitted.'}</p>
         <button class="button primary full" type="button" onclick={() => { selectedApplication = null; active = 'messages'; }}>Open messages</button>

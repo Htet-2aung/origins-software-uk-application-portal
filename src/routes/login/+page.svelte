@@ -1,7 +1,13 @@
+<!--
+   Disclaimer: Property of origins ltd. united kingdom.
+   privacy policy: https://www.origins-software.com/privacy
+   terms of service: https://www.origins-software.com/terms
+-->
 <script lang="ts">
   import { enhance } from '$app/forms';
   export let form;
   export let data;
+  let submitting = false;
 </script>
 
 <svelte:head><title>Sign in — Origins Talent</title></svelte:head>
@@ -39,7 +45,7 @@
       <div class="error" role="alert">{form.error}</div>
     {/if}
 
-    <form method="POST" use:enhance>
+    <form method="POST" use:enhance={() => { submitting = true; return async ({ update }) => { await update(); submitting = false; }; }}>
       <label for="login-email">
         Email
         <input id="login-email" name="email" type="email" autocomplete="email" required value={form?.email ?? data?.email ?? ''} />
@@ -50,7 +56,7 @@
         <input id="login-password" name="password" type="password" autocomplete="current-password" required />
       </label>
 
-      <button class="primary" type="submit">Sign in</button>
+      <button class="primary" type="submit" disabled={submitting} aria-busy={submitting}>{#if submitting}<span class="loading-spinner" aria-hidden="true"></span>Signing in…{:else}Sign in{/if}</button>
     </form>
 
     <div class="links">

@@ -11,13 +11,13 @@ export const load = async ({ locals, params }) => {
   if (!profile) throw redirect(303, '/login');
 
   const [interview] = await db.select().from(interviews).where(eq(interviews.roomCode, params.room)).limit(1);
-  if (!interview) throw error(404, 'Interview room not found.');
+  if (!interview) throw error(404, 'Interview not found.');
 
   const [application] = await db.select().from(applications).where(eq(applications.id, interview.applicationId)).limit(1);
   if (!application) throw error(404, 'Application not found.');
 
   const allowed = application.applicantId === profile.id || (hrRoles.includes(profile.role) && interview.interviewerId === profile.id);
-  if (!allowed) throw error(403, 'You are not authorised to enter this interview room.');
+  if (!allowed) throw error(403, 'You are not authorised to view this interview.');
 
   const [job] = await db.select().from(jobs).where(eq(jobs.id, application.jobId)).limit(1);
   const [interviewer] = await db.select().from(profiles).where(eq(profiles.id, interview.interviewerId)).limit(1);

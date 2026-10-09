@@ -1,7 +1,13 @@
+<!--
+   Disclaimer: Property of origins ltd. united kingdom.
+   privacy policy: https://www.origins-software.com/privacy
+   terms of service: https://www.origins-software.com/terms
+-->
 <script lang="ts">
   import { enhance } from '$app/forms';
   export let form;
   let accountType = 'applicant';
+  let submitting = false;
 </script>
 
 <svelte:head><title>Create account — Origins Talent</title></svelte:head>
@@ -33,7 +39,7 @@
       <div class="error" role="alert">{form.error}</div>
     {/if}
 
-    <form method="POST" use:enhance>
+    <form method="POST" use:enhance={() => { submitting = true; return async ({ update }) => { await update(); submitting = false; }; }}>
       <div class="account-types" aria-label="Account type">
         <button type="button" class:chosen={accountType === 'applicant'} onclick={() => accountType = 'applicant'}>
           <b>Applicant</b>
@@ -71,7 +77,7 @@
         <p class="hint">HR access is invitation-only. The invitation code is never stored in the browser.</p>
       {/if}
 
-      <button class="primary" type="submit">Create {accountType === 'hr' ? 'HR' : 'applicant'} account</button>
+      <button class="primary" type="submit" disabled={submitting} aria-busy={submitting}>{#if submitting}<span class="loading-spinner" aria-hidden="true"></span>Creating account…{:else}Create {accountType === 'hr' ? 'HR' : 'applicant'} account{/if}</button>
     </form>
 
     <div class="links">

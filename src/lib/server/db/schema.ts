@@ -75,6 +75,7 @@ export const interviews = pgTable('interviews', {
   startsAt: timestamp('starts_at', { withTimezone: true }).notNull(),
   endsAt: timestamp('ends_at', { withTimezone: true }).notNull(),
   roomCode: text('room_code').notNull().unique(),
+  meetingUrl: text('meeting_url'),
   notes: text('notes'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
 });

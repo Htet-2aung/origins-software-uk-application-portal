@@ -365,7 +365,7 @@
                 <div><span class="status {application.status}">{application.status}</span><small>Updated {formatDate(application.updatedAt)}</small></div>
                 <button class="button quiet" type="button" onclick={() => openApplication(application)}>Open <Icon name="external" size={13} /></button>
               </article>
-            {/each}
+            {/{/each}
           </section>
         {/if}
       </div>

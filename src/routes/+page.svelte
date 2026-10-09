@@ -600,7 +600,7 @@
         <section class="application-detail-block"><span class="eyebrow">INTERVIEW HISTORY</span><h3>Interviews for this application</h3>
           {#if selectedApplicationInterviews.length === 0}<p class="detail-muted">No interviews are linked to this application yet. Use Interviews → Schedule for an applicant to book one.</p>{:else}
             {#each selectedApplicationInterviews as interview}<div class="detail-interview"><span class="status {interview.status}">{interview.status}</span><strong>{interview.title}</strong><small>{interview.type} · {formatDateTime(interview.startsAt)} — {formatDateTime(interview.endsAt)}</small><a href={`/interview/${interview.roomCode}`}>Open interview room ↗</a></div>{/each}
-          {/each}
+          {/if}
         </section>
       {:else}
         <p>{selectedApplication.coverLetter || 'No cover letter was submitted.'}</p>

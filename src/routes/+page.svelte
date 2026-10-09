@@ -408,19 +408,36 @@
           </section>
         {/if}
       </div>
-    {:else if active === 'messages'}
+       {:else if active === 'messages'}
       <div class="content">
-        <div class="head"><div><span class="eyebrow green">MESSAGES</span><h1>Application conversations.</h1><p>Messages are stored against real application records.</p></div></div>
+        <div class="head">
+          <div>
+            <span class="eyebrow green">MESSAGES</span>
+            <h1>Application conversations.</h1>
+            <p>Messages are stored against real application records.</p>
+          </div>
+        </div>
+
         {#if data.messages.length === 0}
-          <section class="empty panel"><span class="eyebrow">NO MESSAGES</span><h2>No conversation yet.</h2><p>{isHr ? 'Messages will appear when you communicate with an applicant.' : 'A recruiter can message you once your application is being reviewed.'}</p></section>
+          <section class="empty panel">
+            <span class="eyebrow">NO MESSAGES</span>
+            <h2>No conversation yet.</h2>
+            <p>
+              {isHr
+                ? 'Messages will appear when you communicate with an applicant.'
+                : 'A recruiter can message you once your application is being reviewed.'}
+            </p>
+          </section>
         {:else}
           <section class="message-list">
             {#each data.messages as message}
               <article class="panel message-card">
-                <span class="eyebrow">{formatDateTime(message.createdAt)}</span>
+                <span class="eyebrow">
+                  {formatDateTime(message.createdAt)}
+                </span>
                 <p>{message.body}</p>
               </article>
-            {/if}
+            {/each}
           </section>
         {/if}
 
@@ -428,15 +445,29 @@
           <section class="panel compose-panel">
             <span class="eyebrow">APPLICATION MESSAGE</span>
             <h2>{selectedApplication.job?.title ?? 'Application'}</h2>
+
             <form method="POST" action="?/sendMessage" use:enhance>
-              <input type="hidden" name="applicationId" value={selectedApplication.id} />
+              <input
+                type="hidden"
+                name="applicationId"
+                value={selectedApplication.id}
+              />
               <label for="message-body">Message</label>
-              <textarea id="message-body" name="body" placeholder="Write a message…" maxlength="10000" required></textarea>
-              <button class="button primary" type="submit">Send message</button>
+              <textarea
+                id="message-body"
+                name="body"
+                placeholder="Write a message…"
+                maxlength="10000"
+                required
+              ></textarea>
+              <button class="button primary" type="submit">
+                Send message
+              </button>
             </form>
           </section>
         {/if}
       </div>
+
     {:else if active === 'settings'}
       <div class="content">
         <div class="head"><div><span class="eyebrow green">ACCOUNT</span><h1>Settings.</h1><p>Your identity and access are controlled by your authenticated Supabase account.</p></div></div>

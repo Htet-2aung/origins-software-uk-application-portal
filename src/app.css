@@ -1052,3 +1052,85 @@ justify-content: center;
   background-color: rgba(0, 212, 126, .23);
   transform: scale(.99);
 }
+
+
+/* Polished, unobtrusive scrollbars across the portal */
+:root {
+  color-scheme: dark;
+  scrollbar-color: rgba(130, 160, 144, .42) transparent;
+  scrollbar-width: thin;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(130, 160, 144, .42) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(130, 160, 144, .34);
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 212, 126, .68);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Native file chooser made consistent with the dark, rounded interface */
+input[type="file"] {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface2);
+  color: var(--muted);
+  line-height: 1.5;
+  transition: border-color .18s ease, background-color .18s ease;
+}
+input[type="file"]:hover {
+  border-color: rgba(0, 212, 126, .45);
+}
+input[type="file"]::file-selector-button {
+  margin: 0 12px 0 0;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface3);
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color .18s ease, border-color .18s ease;
+}
+input[type="file"]::file-selector-button:hover {
+  border-color: var(--accent);
+  background: var(--surface);
+}
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}

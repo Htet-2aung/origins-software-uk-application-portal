@@ -24,6 +24,11 @@
   let applicationSearch = '';
   let statusFilter = 'all';
   let busyAction = false;
+  let selectedResumeName = ''; 
+  function handleResumeChange(event: Event) {
+    const input = event.currentTarget as HTMLInputElement;
+    selectedResumeName = input.files?.[0]?.name ?? '';
+  }
   const statusStages = ['applied', 'screening', 'interview', 'assessment', 'offer', 'hired', 'rejected', 'withdrawn'];
   $: filteredApplications = data.applications.filter((application) => {
     const haystack = `${application.applicant?.fullName ?? ''} ${application.applicant?.email ?? ''} ${application.job?.title ?? ''}`.toLowerCase();
@@ -555,11 +560,13 @@
             name="resume"
             type="file"
             accept=".pdf,.doc,.docx"
+            aria-describedby="cv-upload-help"
+            on:change={handleResumeChange}
             required
           />
 
-          <small class="upload-help">
-            PDF, DOC or DOCX. Maximum file size: 10 MB.
+          <small id="cv-upload-help" class="upload-help">
+            {selectedResumeName ? `Selected: ${selectedResumeName}` : 'PDF, DOC or DOCX. Maximum file size: 10 MB.'}
           </small>
 
           <label for="cover-letter">

@@ -216,8 +216,25 @@ export const actions: Actions = {
     const form = await request.formData();
     const jobId = String(form.get('jobId') ?? '').trim();
     const coverLetter = String(form.get('coverLetter') ?? '').trim();
+    const resume = form.get('resume');
 
     if (!jobId) return fail(400, { error: 'Select a job.' });
+    if (!(resume instanceof File) || resume.size === 0) {
+      return fail(400, { error: 'Please choose your CV or resume before submitting.' });
+    }
+    if (resume.size > 10 * 1024 * 1024) {
+      return fail(400, { error: 'Your CV must be 10 MB or smaller.' });
+    }
+
+    const allowedResumeTypes = new Set([
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ]);
+    const extension = resume.name.split('.').pop()?.toLowerCase() ?? '';
+    if (!['pdf', 'doc', 'docx'].includes(extension) || !allowedResumeTypes.has(resume.type)) {
+      return fail(400, { error: 'Upload a PDF, DOC, or DOCX file.' });
+    }
     if (coverLetter.length > 10000) {
       return fail(400, { error: 'Cover letter is too long.' });
     }
@@ -242,14 +259,35 @@ export const actions: Actions = {
       return fail(409, { error: 'You have already applied for this position.' });
     }
 
+    let uploadedResumePath: string | null = null;
     try {
+      // Keep CVs in a private Supabase Storage bucket; never store file bytes in the database.
+      // Create a private bucket named `resumes` in Supabase Storage before enabling applications.
+      const safeExtension = extension;
+      const storagePath = `${profile.id}/${crypto.randomUUID()}.${safeExtension}`;
+      const { error: uploadError } = await locals.supabase.storage
+        .from('resumes')
+        .upload(storagePath, resume, {
+          contentType: resume.type,
+          upsert: false
+        });
+
+      if (uploadError) {
+        console.error('Resume upload failed', { message: uploadError.message });
+        return fail(502, {
+          error: 'Your CV could not be uploaded. Please try again. If this continues, contact the hiring team.'
+        });
+      }
+      uploadedResumePath = storagePath;
+
       const created = await db.transaction(async (tx) => {
         const [application] = await tx
           .insert(applications)
           .values({
             jobId,
             applicantId: profile.id,
-            coverLetter: coverLetter || null
+            coverLetter: coverLetter || null,
+            resumePath: storagePath
           })
           .returning({ id: applications.id });
 
@@ -259,7 +297,7 @@ export const actions: Actions = {
           applicationId: application.id,
           actorId: profile.id,
           toStatus: 'applied',
-          note: 'Application submitted.'
+          note: 'Application submitted with CV.'
         });
 
         return application;
@@ -271,6 +309,14 @@ export const actions: Actions = {
         applicationId: created.id
       };
     } catch (error) {
+      if (uploadedResumePath) {
+        const { error: cleanupError } = await locals.supabase.storage
+          .from('resumes')
+          .remove([uploadedResumePath]);
+        if (cleanupError) {
+          console.error('Resume cleanup failed', { message: cleanupError.message });
+        }
+      }
       console.error('Application creation failed', error);
       return fail(500, {
         error: 'The application could not be submitted. Please try again.'
